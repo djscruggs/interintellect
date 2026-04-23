@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SEEKER
+  COMPANY
+}
+
+enum ExperienceLevel {
+  JUNIOR
+  MID
+  SENIOR
+  LEAD
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String
+  role           UserRole
+  createdAt      DateTime        @default(now())
+
+  seekerProfile  SeekerProfile?
+  companyProfile CompanyProfile?
+}
+
+model SeekerProfile {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  bio           String?
+  skills        String[]
+  desiredRole   String
+  experienceYrs Int       @default(0)
+  location      String?
+  remote        Boolean   @default(true)
+  resumeText    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  matches       Match[]
+}
+
+model CompanyProfile {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  website     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  jobs        Job[]
+}
+
+model Job {
+  id              String          @id @default(cuid())
+  companyId       String
+  company         CompanyProfile  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title           String
+  description     String
+  requiredSkills  String[]
+  experienceLevel ExperienceLevel
+  remote          Boolean         @default(true)
+  location        String?
+  salaryMin       Int?
+  salaryMax       Int?
+  active          Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  matches         Match[]
+}
+
+model Match {
+  id          String        @id @default(cuid())
+  seekerId    String
+  seeker      SeekerProfile @relation(fields: [seekerId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  score       Int
+  reasoning   String
+  dismissed   Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+
+  @@unique([seekerId, jobId])
+}
